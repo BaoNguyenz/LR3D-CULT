@@ -1,286 +1,289 @@
-#!/usr/bin/env python3
-"""
-Prepare dataset for PixelNeRF.
-
-- Pick N_FRAMES evenly from source images (spread across 0..360).
-- Resize images (optional).
-- Copy images directly into each object folder (NOT images/ subfolder).
-- Create transforms.json containing 'camera_angle_x' and frames list, where each frame:
-    { "file_path": "./0001.png", "w": W, "h": H, "transform_matrix": [[...],...] }
-- Split objects into train/val/test by ratio (default 0.8/0.1/0.1).
-- Skip objects with fewer than N_FRAMES images.
-
-Usage example:
-python prepare_pixelnerf_dataset.py \
-  --src "E:/LET_ME_COOK/Captone/PixelNerf_finetuning/all_objects" \
-  --dst "E:/LET_ME_COOK/Captone/PixelNerf_finetuning/dataset_pixelnerf_nv90" \
-  --n 90 --resize 128 128 --fov 50 --dist 1.5 --elev 0 --seed 42
-"""
-import os, sys, json, math, random, argparse
+import os
+import json
+import shutil
+import random
 from pathlib import Path
+import math
+
 from PIL import Image
+import numpy as np
+
+# ================== CONFIG ==================
+SRC_ROOT = Path(r"E:\LET_ME_COOK\Captone\PixelNerf_finetuning\dataset_pottery_ver3")
+
+DST_ROOT = Path(r"E:\LET_ME_COOK\Captone\PixelNerf_finetuning\dataset_pottery_ver3_90nv")
+
+N_FRAMES = 90
+
+RESIZE_TO = (128, 128)
 
 IMG_EXTS = {".png", ".jpg", ".jpeg"}
 
-def list_images(d: Path):
-    if not d.exists(): return []
-    return sorted([p for p in d.iterdir() if p.is_file() and p.suffix.lower() in IMG_EXTS])
+RANDOM_SEED = 42
+# ============================================
 
-def pick_even_indices(L, n):
-    if n == 1: return [0]
-    return [int(round(i*(L-1)/(n-1))) for i in range(n)]
 
-def make_cam2world_y(theta_rad, dist=1.5, elev_rad=0.0):
-    # camera pos in spherical coords
-    x = dist * math.cos(elev_rad) * math.sin(theta_rad)
-    y = dist * math.sin(elev_rad)
-    z = dist * math.cos(elev_rad) * math.cos(theta_rad)
-    pos = [x,y,z]
-    fx,fy,fz = -x,-y,-z
-    fn = math.sqrt(fx*fx+fy*fy+fz*fz)+1e-9
-    forward = [fx/fn, fy/fn, fz/fn]
-    up_world = [0.0,1.0,0.0]
-    # right = up x forward
-    rx = up_world[1]*forward[2] - up_world[2]*forward[1]
-    ry = up_world[2]*forward[0] - up_world[0]*forward[2]
-    rz = up_world[0]*forward[1] - up_world[1]*forward[0]
-    rn = math.sqrt(rx*rx+ry*ry+rz*rz)+1e-9
-    right = [rx/rn, ry/rn, rz/rn]
-    # up = forward x right
-    ux = forward[1]*right[2] - forward[2]*right[1]
-    uy = forward[2]*right[0] - forward[0]*right[2]
-    uz = forward[0]*right[1] - forward[1]*right[0]
-    mat = [
-        [right[0], ux, forward[0], pos[0]],
-        [right[1], uy, forward[1], pos[1]],
-        [right[2], uz, forward[2], pos[2]],
-        [0.0,      0.0, 0.0,       1.0]
-    ]
-    return mat
+def normalize_file_path(rel: str) -> str:
+    """Chuẩn hóa file_path trong transforms.json -> chỉ còn tên file."""
+    rel = rel.replace("\\", "/")
+    rel = rel.lstrip("./")
+    if rel.startswith("images/"):
+        rel = rel[len("images/"):]
+    return os.path.basename(rel)
 
-def prepare_obj(src_obj, dst_obj, n_frames, resize_wh, fov_deg, dist, elev_deg):
-    # support images either in src_obj/images/ or directly in src_obj/
-    images_dir = src_obj / "images"
-    imgs = list_images(images_dir) if images_dir.exists() else list_images(src_obj)
-    if len(imgs) < n_frames:
-        return False, f"not enough images ({len(imgs)})"
-    idxs = pick_even_indices(len(imgs), n_frames)
-    dst_obj.mkdir(parents=True, exist_ok=True)
-    frames = []
-    for i, idx in enumerate(idxs, start=1):
-        src_img = imgs[idx]
-        ext = src_img.suffix.lower()
-        newname = f"{i:04d}{ext}"
-        dst_path = dst_obj / newname
+
+def list_valid_frames(obj_dir: Path, tf_data: dict):
+    """
+    Trả về danh sách TẤT CẢ frame hợp lệ:
+      - Ảnh tồn tại
+      - Có đuôi hợp lệ
+    Format: [(frame_dict, src_img_path), ...]
+    """
+    images_dir = obj_dir / "images"
+    search_dir = images_dir if images_dir.exists() and images_dir.is_dir() else obj_dir
+
+    # Map tên file -> path
+    img_map = {}
+    for p in search_dir.iterdir():
+        if p.is_file() and p.suffix.lower() in IMG_EXTS:
+            img_map[p.name] = p
+
+    frames = tf_data.get("frames", [])
+    all_valid = []
+
+    for idx, fr in enumerate(frames):
+        fname = normalize_file_path(fr.get("file_path", ""))
+        src_img = img_map.get(fname)
+        if src_img is None:
+            # print(f"    ! Không tìm thấy ảnh {fname}, bỏ qua frame {idx}.")
+            continue
+        if src_img.suffix.lower() not in IMG_EXTS:
+            # print(f"    ! {fname} không phải ảnh hợp lệ, bỏ qua frame {idx}.")
+            continue
+        all_valid.append((fr, src_img))
+
+    return all_valid
+
+
+def select_evenly_spaced_frames(all_valid, n_frames: int):
+    """
+    Chọn n_frames frame chia đều quanh 0–360 độ (dựa trên thứ tự trong all_valid).
+    all_valid: list[(frame_dict, img_path)].
+    """
+    M = len(all_valid)
+    if M == 0:
+        return []
+
+    if M <= n_frames:
+        # Nếu ít hoặc bằng N_FRAMES thì dùng hết
+        return all_valid
+
+    # Chọn index chia đều bằng linspace
+    indices = np.linspace(0, M - 1, n_frames, dtype=int)
+    indices = sorted(set(indices.tolist()))
+
+    # Nếu vì set() mà bị thiếu thì bù thêm
+    while len(indices) < n_frames:
+        for extra in range(M):
+            if extra not in indices:
+                indices.append(extra)
+                if len(indices) >= n_frames:
+                    break
+    indices = sorted(indices)
+
+    chosen = [all_valid[i] for i in indices]
+    return chosen
+
+
+def process_object(obj_dir: Path, dst_obj_dir: Path) -> bool:
+    """
+    - Đọc transforms.json
+    - Lọc tất cả valid frames
+    - Nếu < N_FRAMES -> bỏ
+    - Nếu >= N_FRAMES -> chọn N_FRAMES frame chia đều
+    - Resize ảnh + rename 0001.png, 0002.png, ...
+    - Ghi transforms.json mới (file_path = ./0001.png ...)
+    """
+    tf_path = obj_dir / "transforms.json"
+    if not tf_path.exists():
+        print(f"  ! Bỏ qua {obj_dir.name}: không có transforms.json")
+        return False
+
+    with tf_path.open("r", encoding="utf-8") as f:
+        tf_data = json.load(f)
+
+    all_valid = list_valid_frames(obj_dir, tf_data)
+    M = len(all_valid)
+    if M < N_FRAMES:
+        print(f"  ! Bỏ qua {obj_dir.name}: chỉ có {M} frame hợp lệ (< {N_FRAMES})")
+        return False
+
+    chosen = select_evenly_spaced_frames(all_valid, N_FRAMES)
+    print(f"  - {obj_dir.name}: tổng {M} frame hợp lệ, chọn {len(chosen)} frame để export")
+
+    dst_obj_dir.mkdir(parents=True, exist_ok=True)
+
+    new_frames = []
+
+    # Dùng frame đầu tiên gốc để lấy w,h cũ (nếu có) cho scale_ratio
+    orig_w = tf_data.get("w", None)
+    if orig_w is None and len(tf_data.get("frames", [])) > 0:
+        orig_w = tf_data["frames"][0].get("w", None)
+
+    # COPY + RESIZE ảnh
+    for i, (fr, src_img) in enumerate(chosen, start=1):
+        new_name = f"{i:04d}{src_img.suffix.lower()}"
+        dst_img_path = dst_obj_dir / new_name
+
         im = Image.open(src_img).convert("RGB")
-        if resize_wh is not None:
-            im = im.resize(resize_wh, Image.LANCZOS)
-        im.save(dst_path)
-        frames.append({"file_path": f"./{newname}", "w": im.width, "h": im.height})
-    # build transforms.json
-    cam_angle_x = math.radians(fov_deg)
-    out = {"camera_angle_x": cam_angle_x, "frames": []}
-    elev_rad = math.radians(elev_deg)
-    for i in range(n_frames):
-        theta = 2.0*math.pi*(i) / n_frames
-        mat = make_cam2world_y(theta, dist=dist, elev_rad=elev_rad)
-        fr = dict(frames[i])
-        fr["transform_matrix"] = mat
-        out["frames"].append(fr)
-    with open(dst_obj / "transforms.json", "w", encoding="utf-8") as f:
-        json.dump(out, f, indent=2, ensure_ascii=False)
-    return True, f"ok, copied {len(frames)} images"
+        im = im.resize(RESIZE_TO, Image.BILINEAR)
+        im.save(dst_img_path)
+
+        fr = dict(fr)  # clone
+        fr["file_path"] = f"./{new_name}"
+        fr["w"] = RESIZE_TO[0]
+        fr["h"] = RESIZE_TO[1]
+        new_frames.append(fr)
+
+    # Ghi transforms.json mới
+    tf_new = dict(tf_data)
+    tf_new["frames"] = new_frames
+    tf_new["w"] = RESIZE_TO[0]
+    tf_new["h"] = RESIZE_TO[1]
+
+    # Nếu có intrinsics global (fl_x, cx, ...) thì scale theo width
+    if orig_w is not None and orig_w > 0:
+        scale_ratio = RESIZE_TO[0] / float(orig_w)
+        for key in ("fl_x", "fl_y", "cx", "cy"):
+            if key in tf_new:
+                tf_new[key] = float(tf_new[key]) * scale_ratio
+
+    with (dst_obj_dir / "transforms.json").open("w", encoding="utf-8") as f:
+        json.dump(tf_new, f, ensure_ascii=False, indent=2)
+
+    return True
+
+
+def gather_all_objects():
+    """
+    Gom tất cả object từ SRC_ROOT/train, val, test.
+    Chỉ giữ những object có >= N_FRAMES frame hợp lệ.
+    """
+    all_obj_dirs = []
+
+    for split in ["train", "val", "test"]:
+        split_dir = SRC_ROOT / split
+        if not split_dir.exists():
+            continue
+        for obj in sorted(split_dir.iterdir()):
+            if obj.is_dir():
+                all_obj_dirs.append(obj)
+
+    print(f"Tổng số object tìm được (chưa lọc frame): {len(all_obj_dirs)}")
+
+    eligible = []
+    for obj_dir in all_obj_dirs:
+        tf_path = obj_dir / "transforms.json"
+        if not tf_path.exists():
+            print(f"  ! {obj_dir.name}: không có transforms.json, bỏ.")
+            continue
+        try:
+            tf_data = json.load(open(tf_path, "r", encoding="utf-8"))
+        except Exception as e:
+            print(f"  ! {obj_dir.name}: lỗi đọc transforms.json: {e}, bỏ.")
+            continue
+
+        all_valid = list_valid_frames(obj_dir, tf_data)
+        if len(all_valid) < N_FRAMES:
+            print(f"  ! {obj_dir.name}: chỉ có {len(all_valid)} frame hợp lệ, bỏ.")
+            continue
+
+        eligible.append(obj_dir)
+
+    print(f"Object đủ điều kiện (>= {N_FRAMES} frame): {len(eligible)}")
+    return eligible
+
+
+def split_objects_8_1_1(eligible_obj_dirs):
+    """
+    Chia danh sách object thành train/val/test theo tỉ lệ 8:1:1.
+    """
+    random.seed(RANDOM_SEED)
+    obj_dirs = eligible_obj_dirs[:]
+    random.shuffle(obj_dirs)
+
+    n_total = len(obj_dirs)
+    n_train = int(0.7 * n_total)
+    n_val = int(0.15 * n_total)
+    n_test = n_total - n_train - n_val
+
+    train_objs = obj_dirs[:n_train]
+    val_objs = obj_dirs[n_train:n_train + n_val]
+    test_objs = obj_dirs[n_train + n_val:]
+
+    print("\n===== SPLIT 8:1:1 =====")
+    print(f"Total: {n_total}")
+    print(f"train: {len(train_objs)}")
+    print(f"val  : {len(val_objs)}")
+    print(f"test : {len(test_objs)}")
+
+    return {
+        "train": train_objs,
+        "val": val_objs,
+        "test": test_objs,
+    }
+
+
+def build_new_dataset(splits_map):
+    """
+    Tạo cấu trúc:
+      DST_ROOT/train/obj_name/{0001.png,0002.png,transforms.json}
+      DST_ROOT/val/...
+      DST_ROOT/test/...
+    """
+    DST_ROOT.mkdir(parents=True, exist_ok=True)
+
+    summary = {}
+    for split_name, obj_dirs in splits_map.items():
+        dst_split_dir = DST_ROOT / split_name
+        dst_split_dir.mkdir(parents=True, exist_ok=True)
+        print(f"\n======= Xử lý split mới: {split_name} =======")
+        used = 0
+        for obj_dir in obj_dirs:
+            print(f"\n🧱 Object: {obj_dir.name}")
+            dst_obj_dir = dst_split_dir / obj_dir.name
+            ok = process_object(obj_dir, dst_obj_dir)
+            if ok:
+                used += 1
+        summary[split_name] = used
+        print(f"\n📊 Split {split_name}: dùng được {used}/{len(obj_dirs)} object")
+
+    print("\n===== TỔNG KẾT CUỐI =====")
+    for k, v in summary.items():
+        print(f"{k}: {v} object")
+
 
 def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--src", required=True)
-    p.add_argument("--dst", required=True)
-    p.add_argument("--n", type=int, default=90, help="NV per object")
-    p.add_argument("--resize", nargs=2, type=int, default=[128,128], help="W H (0 0 to keep)")
-    p.add_argument("--fov", type=float, default=50.0)
-    p.add_argument("--dist", type=float, default=1.5)
-    p.add_argument("--elev", type=float, default=0.0)
-    p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--split", nargs=3, type=float, default=[0.8,0.1,0.1])
-    args = p.parse_args()
+    print("=== Chuẩn hóa dataset gốm cho PixelNeRF ===")
+    print(f"SRC_ROOT: {SRC_ROOT}")
+    print(f"DST_ROOT: {DST_ROOT}")
+    print(f"N_FRAMES mỗi object: {N_FRAMES}")
+    print(f"Resize: {RESIZE_TO}")
+    print("Split tỉ lệ: train:val:test = 8:1:1")
+    print()
 
-    SRC = Path(args.src)
-    DST = Path(args.dst)
-    N = args.n
-    resize_wh = (args.resize[0], args.resize[1]) if not (args.resize[0]==0 and args.resize[1]==0) else None
-    random.seed(args.seed)
-    objs = sorted([d for d in SRC.iterdir() if d.is_dir()])
-    good = []
-    bad = []
-    for d in objs:
-        cnt = len(list_images(d / "images")) if (d / "images").exists() else len(list_images(d))
-        if cnt >= N:
-            good.append(d)
-        else:
-            bad.append((d, cnt))
-    print(f"Found {len(objs)} objects; will use {len(good)} (skip {len(bad)})")
-    # split
-    random.shuffle(good)
-    n = len(good)
-    ntrain = int(round(n * args.split[0]))
-    nval = int(round(n * args.split[1]))
-    if ntrain + nval > n:
-        nval = max(0, n - ntrain)
-    ntest = n - ntrain - nval
-    train = good[:ntrain]; val = good[ntrain:ntrain+nval]; test = good[ntrain+nval:]
-    print("Split: train", len(train), "val", len(val), "test", len(test))
+    if not SRC_ROOT.exists():
+        raise SystemExit(f"SRC_ROOT không tồn tại: {SRC_ROOT}")
 
-    for splitname, listobjs in [("train",train),("val",val),("test",test)]:
-        for d in listobjs:
-            ok, msg = prepare_obj(d, DST / splitname / d.name, N, resize_wh, args.fov, args.dist, args.elev)
-            if not ok:
-                print("  SKIP", d.name, msg)
-            else:
-                print("  DONE", d.name, msg)
-    print("Done. Output at:", DST)
+    eligible = gather_all_objects()
+    if len(eligible) == 0:
+        raise SystemExit("Không có object nào đủ số frame, dừng.")
 
-if __name__ == "__main__":
-    main()
-#!/usr/bin/env python3
-"""
-Prepare dataset for PixelNeRF.
+    splits_map = split_objects_8_1_1(eligible)
+    build_new_dataset(splits_map)
 
-- Pick N_FRAMES evenly from source images (spread across 0..360).
-- Resize images (optional).
-- Copy images directly into each object folder (NOT images/ subfolder).
-- Create transforms.json containing 'camera_angle_x' and frames list, where each frame:
-    { "file_path": "./0001.png", "w": W, "h": H, "transform_matrix": [[...],...] }
-- Split objects into train/val/test by ratio (default 0.8/0.1/0.1).
-- Skip objects with fewer than N_FRAMES images.
+    print("\n🎉 Hoàn tất tạo dataset mới:", DST_ROOT)
 
-Usage example:
-python prepare_pixelnerf_dataset.py \
-  --src "E:/LET_ME_COOK/Captone/PixelNerf_finetuning/all_objects" \
-  --dst "E:/LET_ME_COOK/Captone/PixelNerf_finetuning/dataset_pixelnerf_nv90" \
-  --n 90 --resize 128 128 --fov 50 --dist 1.5 --elev 0 --seed 42
-"""
-import os, sys, json, math, random, argparse
-from pathlib import Path
-from PIL import Image
-
-IMG_EXTS = {".png", ".jpg", ".jpeg"}
-
-def list_images(d: Path):
-    if not d.exists(): return []
-    return sorted([p for p in d.iterdir() if p.is_file() and p.suffix.lower() in IMG_EXTS])
-
-def pick_even_indices(L, n):
-    if n == 1: return [0]
-    return [int(round(i*(L-1)/(n-1))) for i in range(n)]
-
-def make_cam2world_y(theta_rad, dist=1.5, elev_rad=0.0):
-    # camera pos in spherical coords
-    x = dist * math.cos(elev_rad) * math.sin(theta_rad)
-    y = dist * math.sin(elev_rad)
-    z = dist * math.cos(elev_rad) * math.cos(theta_rad)
-    pos = [x,y,z]
-    fx,fy,fz = -x,-y,-z
-    fn = math.sqrt(fx*fx+fy*fy+fz*fz)+1e-9
-    forward = [fx/fn, fy/fn, fz/fn]
-    up_world = [0.0,1.0,0.0]
-    # right = up x forward
-    rx = up_world[1]*forward[2] - up_world[2]*forward[1]
-    ry = up_world[2]*forward[0] - up_world[0]*forward[2]
-    rz = up_world[0]*forward[1] - up_world[1]*forward[0]
-    rn = math.sqrt(rx*rx+ry*ry+rz*rz)+1e-9
-    right = [rx/rn, ry/rn, rz/rn]
-    # up = forward x right
-    ux = forward[1]*right[2] - forward[2]*right[1]
-    uy = forward[2]*right[0] - forward[0]*right[2]
-    uz = forward[0]*right[1] - forward[1]*right[0]
-    mat = [
-        [right[0], ux, forward[0], pos[0]],
-        [right[1], uy, forward[1], pos[1]],
-        [right[2], uz, forward[2], pos[2]],
-        [0.0,      0.0, 0.0,       1.0]
-    ]
-    return mat
-
-def prepare_obj(src_obj, dst_obj, n_frames, resize_wh, fov_deg, dist, elev_deg):
-    # support images either in src_obj/images/ or directly in src_obj/
-    images_dir = src_obj / "images"
-    imgs = list_images(images_dir) if images_dir.exists() else list_images(src_obj)
-    if len(imgs) < n_frames:
-        return False, f"not enough images ({len(imgs)})"
-    idxs = pick_even_indices(len(imgs), n_frames)
-    dst_obj.mkdir(parents=True, exist_ok=True)
-    frames = []
-    for i, idx in enumerate(idxs, start=1):
-        src_img = imgs[idx]
-        ext = src_img.suffix.lower()
-        newname = f"{i:04d}{ext}"
-        dst_path = dst_obj / newname
-        im = Image.open(src_img).convert("RGB")
-        if resize_wh is not None:
-            im = im.resize(resize_wh, Image.LANCZOS)
-        im.save(dst_path)
-        frames.append({"file_path": f"./{newname}", "w": im.width, "h": im.height})
-    # build transforms.json
-    cam_angle_x = math.radians(fov_deg)
-    out = {"camera_angle_x": cam_angle_x, "frames": []}
-    elev_rad = math.radians(elev_deg)
-    for i in range(n_frames):
-        theta = 2.0*math.pi*(i) / n_frames
-        mat = make_cam2world_y(theta, dist=dist, elev_rad=elev_rad)
-        fr = dict(frames[i])
-        fr["transform_matrix"] = mat
-        out["frames"].append(fr)
-    with open(dst_obj / "transforms.json", "w", encoding="utf-8") as f:
-        json.dump(out, f, indent=2, ensure_ascii=False)
-    return True, f"ok, copied {len(frames)} images"
-
-def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--src", required=True)
-    p.add_argument("--dst", required=True)
-    p.add_argument("--n", type=int, default=90, help="NV per object")
-    p.add_argument("--resize", nargs=2, type=int, default=[128,128], help="W H (0 0 to keep)")
-    p.add_argument("--fov", type=float, default=50.0)
-    p.add_argument("--dist", type=float, default=1.5)
-    p.add_argument("--elev", type=float, default=0.0)
-    p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--split", nargs=3, type=float, default=[0.8,0.1,0.1])
-    args = p.parse_args()
-
-    SRC = Path(args.src)
-    DST = Path(args.dst)
-    N = args.n
-    resize_wh = (args.resize[0], args.resize[1]) if not (args.resize[0]==0 and args.resize[1]==0) else None
-    random.seed(args.seed)
-    objs = sorted([d for d in SRC.iterdir() if d.is_dir()])
-    good = []
-    bad = []
-    for d in objs:
-        cnt = len(list_images(d / "images")) if (d / "images").exists() else len(list_images(d))
-        if cnt >= N:
-            good.append(d)
-        else:
-            bad.append((d, cnt))
-    print(f"Found {len(objs)} objects; will use {len(good)} (skip {len(bad)})")
-    # split
-    random.shuffle(good)
-    n = len(good)
-    ntrain = int(round(n * args.split[0]))
-    nval = int(round(n * args.split[1]))
-    if ntrain + nval > n:
-        nval = max(0, n - ntrain)
-    ntest = n - ntrain - nval
-    train = good[:ntrain]; val = good[ntrain:ntrain+nval]; test = good[ntrain+nval:]
-    print("Split: train", len(train), "val", len(val), "test", len(test))
-
-    for splitname, listobjs in [("train",train),("val",val),("test",test)]:
-        for d in listobjs:
-            ok, msg = prepare_obj(d, DST / splitname / d.name, N, resize_wh, args.fov, args.dist, args.elev)
-            if not ok:
-                print("  SKIP", d.name, msg)
-            else:
-                print("  DONE", d.name, msg)
-    print("Done. Output at:", DST)
 
 if __name__ == "__main__":
     main()
