@@ -1,0 +1,128 @@
+# =============================================================================
+# DATA — Do NOT push datasets to GitHub
+# =============================================================================
+
+# Raw data (thousands of images)
+NeRF_finetuning/All_data/
+NeRF_finetuning/data_nerf/
+PixelNerf_finetuning/LR3D-CULT/
+PixelNerf_finetuning/pixel-nerf/dataset/
+PixelNerf_finetuning/pixel-nerf/dataset_pottery/
+PixelNerf_finetuning/pixel-nerf/input/
+PixelNerf_finetuning/pixel-nerf/input_original/
+
+# Processed datasets (too large)
+PixelNerf_finetuning/dataset_pottery*/
+PixelNerf_finetuning/Dataset_test/
+PixelNerf_finetuning/DATA_tam_nay_thi_het_cuu/
+PixelNerf_finetuning/Final_data*/
+data/raw/
+data/processed/
+
+# =============================================================================
+# MODEL OUTPUTS — checkpoints, renders, logs
+# =============================================================================
+
+# NeRF outputs
+NeRF_finetuning/outputs/
+NeRF_finetuning/outputs_fewshot_normals/
+NeRF_finetuning/renders/
+NeRF_finetuning/renders_fewshot_normals/
+
+# PixelNeRF outputs
+PixelNerf_finetuning/pixel-nerf/checkpoints/
+PixelNerf_finetuning/pixel-nerf/logs/
+PixelNerf_finetuning/pixel-nerf/output/
+PixelNerf_finetuning/pixel-nerf/output_real/
+PixelNerf_finetuning/pixel-nerf/visuals/
+PixelNerf_finetuning/pixel-nerf/benchmart/
+
+# General results
+results/
+
+# =============================================================================
+# LARGE BINARY FILES
+# =============================================================================
+
+# Archives
+*.rar
+*.zip
+*.7z
+*.tar.gz
+
+# 3D model files (large)
+*.ply
+*.obj
+*.mtl
+*.stl
+
+# Large images/videos
+*.gif
+*.mp4
+*.avi
+
+# Model weights
+*.pth
+*.pt
+*.h5
+*.ckpt
+*.bin
+
+# =============================================================================
+# PYTHON
+# =============================================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.env/
+.venv/
+
+# =============================================================================
+# JUPYTER
+# =============================================================================
+
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+
+# =============================================================================
+# IDE & OS
+# =============================================================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# =============================================================================
+# NESTED GIT REPOS (submodules)
+# =============================================================================
+
+NeRF_finetuning/nerf/.git/
+PixelNerf_finetuning/pixel-nerf/.git/
+
+# =============================================================================
+# MISC — temp/trash folders
+# =============================================================================
+
+PixelNerf_finetuning/thung rac/
+NeRF_finetuning/New folder/
+Result_rp/
+Result_rp.rar
+Vase.zip
+
+# Backup drawio files
+*.$*.bkp

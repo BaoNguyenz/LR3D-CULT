@@ -1,0 +1,64 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.7 Chrome/138.0.7204.251 Electron/37.7.1 Safari/537.36" version="28.2.7">
+  <diagram name="Page-1" id="9cl6l0e9uAGM8Ms3OAbj">
+    <mxGraphModel dx="1678" dy="989" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAB308;fontColor=#ffffff;strokeColor=#006EAF;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="390" width="270" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-2" value="&lt;font style=&quot;font-size: 24px; color: rgb(234, 179, 8);&quot; face=&quot;Times New Roman&quot;&gt;1. Image Capture&lt;/font&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font style=&quot;font-size: 17px;&quot; face=&quot;Times New Roman&quot;&gt;Artifacts photographed using iPhone XR on a turntable at 0°, −30°, +45° angles.&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font size=&quot;3&quot; style=&quot;&quot; face=&quot;Times New Roman&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font size=&quot;3&quot; style=&quot;&quot; face=&quot;Times New Roman&quot;&gt;Output: PNG(4032x3024)&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="400" width="270" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAB308;fontColor=#ffffff;strokeColor=#2D7600;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="390" width="270" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAB308;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="390" width="270" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-7" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#EAB308;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="590" width="270" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-9" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#EAB308;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="590" width="270" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-11" value="&lt;font style=&quot;color: rgb(234, 179, 8);&quot; face=&quot;Times New Roman&quot;&gt;&lt;span style=&quot;font-size: 24px;&quot;&gt;2. Photogrammetry&lt;/span&gt;&lt;/font&gt;&lt;br&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font face=&quot;Times New Roman&quot; style=&quot;font-size: 17px;&quot;&gt;Reconstruction using Polycam &amp;amp; COLMAP to generate dense point clouds and textured meshes.&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font size=&quot;3&quot; style=&quot;&quot; face=&quot;Times New Roman&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font size=&quot;3&quot; style=&quot;&quot; face=&quot;Times New Roman&quot;&gt;Output: OBJ, MTL, Textures&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="400" width="270" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-12" value="&lt;font style=&quot;color: rgb(234, 179, 8);&quot; face=&quot;Times New Roman&quot;&gt;&lt;span style=&quot;font-size: 24px;&quot;&gt;3. Mesh Cleaning&lt;/span&gt;&lt;/font&gt;&lt;br&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font style=&quot;font-size: 17px;&quot; face=&quot;Times New Roman&quot;&gt;In Autodesk Maya: remove redundant vertices, fix geometry, scale to unit bounding box.&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font size=&quot;3&quot; style=&quot;&quot; face=&quot;Times New Roman&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font size=&quot;3&quot; style=&quot;&quot; face=&quot;Times New Roman&quot;&gt;Output: Clean OBJ model&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="400" width="270" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-13" value="&lt;font style=&quot;color: rgb(234, 179, 8);&quot; face=&quot;Times New Roman&quot;&gt;&lt;span style=&quot;font-size: 24px;&quot;&gt;4. Rendering &amp;amp; Metadata&lt;/span&gt;&lt;/font&gt;&lt;br&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); font-family: -apple-system, BlinkMacSystemFont, &amp;quot;Segoe UI&amp;quot;, Roboto, Oxygen, Ubuntu, Cantarell, &amp;quot;Helvetica Neue&amp;quot;, Arial, sans-serif; background-color: rgb(255, 255, 255);&quot;&gt;&lt;font style=&quot;font-size: 17px;&quot;&gt;Render 180 PNGs (512×512) from 0° and 45° cameras, auto-export metadata.json via Python.&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font size=&quot;3&quot; style=&quot;&quot; face=&quot;Times New Roman&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font size=&quot;3&quot; style=&quot;&quot; face=&quot;Times New Roman&quot;&gt;Output: PNG, JSON&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="600" width="270" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-14" value="&lt;font style=&quot;color: rgb(234, 179, 8);&quot;&gt;&lt;font face=&quot;Times New Roman&quot;&gt;&lt;span style=&quot;font-size: 24px;&quot;&gt;5. Dataset &amp;amp; Organization&lt;/span&gt;&lt;/font&gt;&lt;br&gt;&lt;/font&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); font-family: -apple-system, BlinkMacSystemFont, &amp;quot;Segoe UI&amp;quot;, Roboto, Oxygen, Ubuntu, Cantarell, &amp;quot;Helvetica Neue&amp;quot;, Arial, sans-serif; background-color: rgb(255, 255, 255);&quot;&gt;&lt;font style=&quot;font-size: 17px;&quot;&gt;Standardize file names, categorize (vase, bowl, plate...)&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font size=&quot;3&quot; style=&quot;&quot; face=&quot;Times New Roman&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font size=&quot;3&quot; style=&quot;&quot; face=&quot;Times New Roman&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(75, 85, 99); background-color: rgb(255, 255, 255);&quot;&gt;&lt;font size=&quot;3&quot; style=&quot;&quot; face=&quot;Times New Roman&quot;&gt;Output:&amp;nbsp;&lt;/font&gt;&lt;/span&gt;&lt;span style=&quot;background-color: transparent;&quot;&gt;&lt;font size=&quot;3&quot; face=&quot;Times New Roman&quot; color=&quot;#4b5563&quot;&gt;LR3D-CULT Dataset&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="600" width="270" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-15" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="420" y="479.65999999999997" as="sourcePoint" />
+            <mxPoint x="440" y="479.65999999999997" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-19" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="730" y="479.66" as="sourcePoint" />
+            <mxPoint x="750" y="479.66" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-20" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="260" y="679.66" as="sourcePoint" />
+            <mxPoint x="280" y="679.66" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MdvqYGhaXOkxZm4kcxdt-21" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="575" y="679.66" as="sourcePoint" />
+            <mxPoint x="595" y="679.66" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
